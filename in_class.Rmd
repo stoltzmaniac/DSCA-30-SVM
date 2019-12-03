@@ -1,0 +1,74 @@
+---
+title: "In Class"
+output: html_document
+---
+
+Example from <https://dataaspirant.com/2017/01/19/support-vector-machine-classifier-implementation-r-caret-package/>
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("GGally") # install.packages("GGally")
+library("tidyverse")
+library("caret")
+set.seed(3033)
+```
+
+Descriptions of what each column is are at the website.
+```{r}
+dat_raw = read.csv('heart_tidy.csv', sep = ',', header = FALSE) # this simply reads it in with columns as V1, V2, etc.
+head(dat_raw)
+```
+
+Look at correlation...
+```{r}
+ggcorr(dat_raw)
+```
+
+
+#### We will call V14 our target variable (Class)
+
+```{r}
+dat = dat_raw %>%
+  rownames_to_column('id') %>%
+  select(-id) %>%
+  mutate(V14 = as.factor(V14))
+head(dat)
+```
+
+
+```{r}
+dat %>% 
+  group_by(V14) %>%
+  count()
+```
+
+
+### New test/train separation technique
+```{r}
+intrain = createDataPartition(y = dat$V14, p = 0.7, list = FALSE)
+head(intrain)
+```
+
+
+```{r}
+dat_train = dat[intrain,]
+dat_test = dat[-intrain,]
+head(dat_train)
+```
+
+
+Notice, we will pre process within the model
+```{r, warning = FALSE}
+train_control = trainControl(method = "cv", number = 5)
+
+mod_svm = train(V14 ~., data = dat_train, 
+                  method = "svmLinear",
+                 trControl=train_control,
+                 preProcess = c("center", "scale"))
+mod_svm
+```
+
+```{r}
+predictions = predict(mod_svm, newdata = dat_test)
+confusionMatrix(predictions, dat_test$V14)
+```
+
